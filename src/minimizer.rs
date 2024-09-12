@@ -75,17 +75,20 @@ mod tests {
         let w = 3;
         let hashes = [7, 5, 9, 8, 6, 3].map(|x| x << 16);
         let hashes: [u32; 6 * LANES] = from_fn(|i| hashes[i / LANES]);
+        let expected = [5, 5, 6, 3];
+        let expected: [u32; 4 * LANES] = from_fn(|i| expected[i / LANES]);
 
         let chunks = hashes.as_chunks::<8>().0;
         // dbg!(chunks);
         let it = chunks.iter().map(|&t| S::new(t));
-        dbg!(it.size_hint());
+        // dbg!(it.size_hint());
 
-        for mini in sliding_min_par_it(it, w) {
-            dbg!(mini.to_array().map(|x| x >> 16));
-        }
-
-        let expected = [5, 5, 6, 3];
-        let expected: [u32; 4 * LANES] = from_fn(|i| expected[i / LANES]);
+        // for mini in sliding_min_par_it(it, w) {
+        //     dbg!(mini.to_array().map(|x| x >> 16));
+        // }
+        let res: Vec<u32> = sliding_min_par_it(it, w)
+            .flat_map(|t| t.to_array().map(|x| x >> 16))
+            .collect();
+        assert_eq!(res, expected);
     }
 }
