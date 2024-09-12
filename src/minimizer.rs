@@ -5,7 +5,10 @@ use wide::u32x8;
 type S = u32x8;
 
 #[inline(always)]
-fn sliding_min_par_it(it: impl Iterator<Item = S>, w: usize) -> impl Iterator<Item = S> {
+fn sliding_min_par_it(
+    it: impl ExactSizeIterator<Item = S>,
+    w: usize,
+) -> impl ExactSizeIterator<Item = S> {
     assert!(w > 0);
     assert!(w < (1 << 15), "This method is not tested for large w.");
     assert!(it.size_hint().0 * 8 < (1 << 32));
@@ -74,9 +77,10 @@ mod tests {
         let hashes: [u32; 6 * LANES] = from_fn(|i| hashes[i / LANES]);
 
         let chunks = hashes.as_chunks::<8>().0;
-        let it = chunks.iter().map(|&t| S::new(t));
-
         // dbg!(chunks);
+        let it = chunks.iter().map(|&t| S::new(t));
+        dbg!(it.size_hint());
+
         for mini in sliding_min_par_it(it, w) {
             dbg!(mini.to_array().map(|x| x >> 16));
         }
