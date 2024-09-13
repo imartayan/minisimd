@@ -1,34 +1,46 @@
-#[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
-use core::arch::aarch64::{uint8x16_t, vqtbl1q_u8};
-#[cfg(all(target_arch = "x86", target_feature = "avx"))]
-use core::arch::x86::_mm256_permutevar_ps;
-#[cfg(all(target_arch = "x86_64", target_feature = "avx"))]
-use core::arch::x86_64::_mm256_permutevar_ps;
 use core::mem::transmute;
 use wide::u32x8;
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "avx")]
+unsafe fn lookup_avx(t: u32x8, idx: u32x8) -> u32x8 {
+    #[cfg(target_arch = "x86")]
+    use std::arch::x86::_mm256_permutevar_ps;
+    #[cfg(target_arch = "x86_64")]
+    use std::arch::x86_64::_mm256_permutevar_ps;
+
+    transmute(_mm256_permutevar_ps(transmute(t), transmute(idx)))
+}
+
+#[cfg(target_arch = "aarch64")]
+#[target_feature(enable = "neon")]
+unsafe fn lookup_neon(t: u32x8, idx: u32x8) -> u32x8 {
+    #[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
+    use core::arch::aarch64::{uint8x16_t, vqtbl1q_u8};
+
+    const OFFSET: u32 = if cfg!(target_endian = "little") {
+        0x03_02_01_00
+    } else {
+        0x00_01_02_03
+    };
+
+    let idx = idx * u32x8::splat(0x04_04_04_04) + u32x8::splat(OFFSET);
+    let (t1, t2): (uint8x16_t, uint8x16_t) = transmute(t);
+    let (i1, i2): (uint8x16_t, uint8x16_t) = transmute(idx);
+    let r1 = vqtbl1q_u8(t1, i1);
+    let r2 = vqtbl1q_u8(t2, i2);
+    transmute((r1, r2))
+}
+
 #[inline(always)]
 pub fn lookup(t: u32x8, idx: u32x8) -> u32x8 {
-    #[cfg(all(
-        any(target_arch = "x86", target_arch = "x86_64"),
-        target_feature = "avx"
-    ))]
-    {
-        return transmute(_mm256_permutevar_ps(transmute(t), transmute(idx)));
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    if std::is_x86_feature_detected!("avx") {
+        return unsafe { lookup_avx(t, idx) };
     }
-    #[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
-    unsafe {
-        const OFFSET: u32 = if cfg!(target_endian = "little") {
-            0x03_02_01_00
-        } else {
-            0x00_01_02_03
-        };
-        let idx = idx * u32x8::splat(0x04_04_04_04) + u32x8::splat(OFFSET);
-        let (t1, t2): (uint8x16_t, uint8x16_t) = transmute(t);
-        let (i1, i2): (uint8x16_t, uint8x16_t) = transmute(idx);
-        let r1 = vqtbl1q_u8(t1, i1);
-        let r2 = vqtbl1q_u8(t2, i2);
-        return transmute((r1, r2));
+    #[cfg(target_arch = "aarch64")]
+    if std::arch::is_aarch64_feature_detected!("neon") {
+        return unsafe { lookup_neon(t, idx) };
     }
     unsafe {
         let t = t.as_array_ref();
