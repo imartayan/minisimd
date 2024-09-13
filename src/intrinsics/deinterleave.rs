@@ -11,11 +11,17 @@ use wide::u32x8;
 #[target_feature(enable = "avx")]
 unsafe fn deinterleave_avx(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
     #[cfg(target_arch = "x86")]
-    use std::arch::x86::*;
+    use std::arch::x86::{__m256, _mm256_permute_ps, _mm256_shuffle_ps};
     #[cfg(target_arch = "x86_64")]
-    use std::arch::x86_64::*;
+    use std::arch::x86_64::{__m256, _mm256_permute_ps, _mm256_shuffle_ps};
 
-    unimplemented!()
+    let a = transmute(a);
+    let b = transmute(b);
+    let abab_even = _mm256_shuffle_ps(a, b, 0b10_00_10_00);
+    let abab_odd = _mm256_shuffle_ps(a, b, 0b11_01_11_01);
+    let ab_even = _mm256_permute_ps(abab_even, 0b11_01_10_00);
+    let ab_odd = _mm256_permute_ps(abab_odd, 0b11_01_10_00);
+    (transmute(a), transmute(b))
 }
 
 #[cfg(target_arch = "aarch64")]
