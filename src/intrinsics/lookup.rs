@@ -8,7 +8,7 @@ use core::mem::transmute;
 use wide::u32x8;
 
 #[inline(always)]
-pub fn wide_lookup(t: u32x8, idx: u32x8) -> u32x8 {
+pub fn lookup(t: u32x8, idx: u32x8) -> u32x8 {
     #[cfg(all(
         any(target_arch = "x86", target_arch = "x86_64"),
         target_feature = "avx"
@@ -44,7 +44,7 @@ mod tests {
     fn test_lookup() {
         let t = u32x8::new([1000, 1001, 1002, 1003, 1000, 1001, 1002, 1003]);
         let idx = u32x8::new([2, 0, 3, 1, 0, 2, 1, 0]);
-        let res = wide_lookup(t, idx);
+        let res = lookup(t, idx);
 
         assert_eq!(
             res.to_array(),

@@ -10,7 +10,7 @@ use wide::u32x8;
 // }
 
 #[inline(always)]
-pub fn wide_deinterleave(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
+pub fn deinterleave(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
     #[cfg(all(
         any(target_arch = "x86", target_arch = "x86_64"),
         target_feature = "avx"
@@ -66,7 +66,7 @@ mod tests {
     fn test_deinterleave() {
         let a = u32x8::new([0, 1, 2, 3, 4, 5, 6, 7]);
         let b = u32x8::new([8, 9, 10, 11, 12, 13, 14, 15]);
-        let (c, d) = wide_deinterleave(a, b);
+        let (c, d) = deinterleave(a, b);
 
         assert_eq!(c.to_array(), [0, 2, 4, 6, 8, 10, 12, 14]);
         assert_eq!(d.to_array(), [1, 3, 5, 7, 9, 11, 13, 15]);

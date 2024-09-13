@@ -7,7 +7,7 @@ use wide::u64x4;
 // }
 
 #[inline(always)]
-pub fn wide_gather(source: u64x4) -> u64x4 {
+pub fn gather(source: u64x4) -> u64x4 {
     #[cfg(all(
         any(target_arch = "x86", target_arch = "x86_64"),
         target_feature = "avx"
