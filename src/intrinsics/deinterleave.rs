@@ -1,5 +1,3 @@
-#[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
-use core::arch::aarch64::{uint32x4_t, vuzp1q_u32, vuzp2q_u32};
 use core::mem::transmute;
 use wide::u32x8;
 
@@ -9,26 +7,43 @@ use wide::u32x8;
 //     a.deinterleave(b)
 // }
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#[target_feature(enable = "avx")]
+unsafe fn deinterleave_avx(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
+    #[cfg(target_arch = "x86")]
+    use std::arch::x86::*;
+    #[cfg(target_arch = "x86_64")]
+    use std::arch::x86_64::*;
+
+    unimplemented!()
+}
+
+#[cfg(target_arch = "aarch64")]
+#[target_feature(enable = "neon")]
+unsafe fn deinterleave_neon(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
+    #[cfg(target_arch = "aarch64")]
+    use core::arch::aarch64::{uint32x4_t, vuzp1q_u32, vuzp2q_u32};
+
+    let (a1, a2): (uint32x4_t, uint32x4_t) = transmute(a);
+    let (b1, b2): (uint32x4_t, uint32x4_t) = transmute(b);
+    let a_even = vuzp1q_u32(a1, a2);
+    let a_odd = vuzp2q_u32(a1, a2);
+    let b_even = vuzp1q_u32(b1, b2);
+    let b_odd = vuzp2q_u32(b1, b2);
+    let ab_even: u32x8 = transmute((a_even, b_even));
+    let ab_odd: u32x8 = transmute((a_odd, b_odd));
+    (ab_even, ab_odd)
+}
+
 #[inline(always)]
 pub fn deinterleave(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
-    #[cfg(all(
-        any(target_arch = "x86", target_arch = "x86_64"),
-        target_feature = "avx"
-    ))]
-    {
-        unimplemented!()
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    if std::is_x86_feature_detected!("avx") {
+        return unsafe { deinterleave_avx(a, b) };
     }
-    #[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
-    unsafe {
-        let (a1, a2): (uint32x4_t, uint32x4_t) = transmute(a);
-        let (b1, b2): (uint32x4_t, uint32x4_t) = transmute(b);
-        let a_even = vuzp1q_u32(a1, a2);
-        let a_odd = vuzp2q_u32(a1, a2);
-        let b_even = vuzp1q_u32(b1, b2);
-        let b_odd = vuzp2q_u32(b1, b2);
-        let ab_even: u32x8 = transmute((a_even, b_even));
-        let ab_odd: u32x8 = transmute((a_odd, b_odd));
-        return (ab_even, ab_odd);
+    #[cfg(target_arch = "aarch64")]
+    if std::arch::is_aarch64_feature_detected!("neon") {
+        return unsafe { deinterleave_neon(a, b) };
     }
     unsafe {
         let a = a.as_array_ref();
