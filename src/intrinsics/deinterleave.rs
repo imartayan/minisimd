@@ -8,20 +8,20 @@ use wide::u32x8;
 // }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-#[target_feature(enable = "avx")]
+#[target_feature(enable = "avx2")]
 unsafe fn deinterleave_avx(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
     #[cfg(target_arch = "x86")]
-    use std::arch::x86::{__m256, _mm256_permute_ps, _mm256_shuffle_ps};
+    use std::arch::x86::{__m256, __m256d, _mm256_permute4x64_pd, _mm256_shuffle_ps};
     #[cfg(target_arch = "x86_64")]
-    use std::arch::x86_64::{__m256, _mm256_permute_ps, _mm256_shuffle_ps};
+    use std::arch::x86_64::{__m256, __m256d, _mm256_permute4x64_pd, _mm256_shuffle_ps};
 
-    let a = transmute(a);
-    let b = transmute(b);
-    let abab_even = _mm256_shuffle_ps(a, b, 0b10_00_10_00);
-    let abab_odd = _mm256_shuffle_ps(a, b, 0b11_01_11_01);
-    let ab_even = _mm256_permute_ps(abab_even, 0b11_01_10_00);
-    let ab_odd = _mm256_permute_ps(abab_odd, 0b11_01_10_00);
-    (transmute(a), transmute(b))
+    let a: __m256 = transmute(a);
+    let b: __m256 = transmute(b);
+    let abab_even: __m256d = transmute(_mm256_shuffle_ps(a, b, 0b10_00_10_00));
+    let abab_odd: __m256d = transmute(_mm256_shuffle_ps(a, b, 0b11_01_11_01));
+    let ab_even = _mm256_permute4x64_pd(abab_even, 0b11_01_10_00);
+    let ab_odd = _mm256_permute4x64_pd(abab_odd, 0b11_01_10_00);
+    (transmute(ab_even), transmute(ab_odd))
 }
 
 #[cfg(target_arch = "aarch64")]
