@@ -15,17 +15,17 @@ unsafe fn deinterleave_avx(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
     #[cfg(target_arch = "x86_64")]
     use std::arch::x86_64::{__m256, __m256d, _mm256_permute4x64_pd, _mm256_shuffle_ps};
 
-    const SHUFFLE_EVEN: u32 = if cfg!(target_endian = "little") {
+    const SHUFFLE_EVEN: i32 = if cfg!(target_endian = "little") {
         0b10_00_10_00
     } else {
         0b00_10_00_10
     };
-    const SHUFFLE_ODD: u32 = if cfg!(target_endian = "little") {
+    const SHUFFLE_ODD: i32 = if cfg!(target_endian = "little") {
         0b11_01_11_01
     } else {
         0b01_11_01_11
     };
-    const SWAP_MIDDLE: u32 = if cfg!(target_endian = "little") {
+    const SWAP_MIDDLE: i32 = if cfg!(target_endian = "little") {
         0b11_01_10_00
     } else {
         0b00_10_01_11
