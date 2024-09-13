@@ -15,7 +15,7 @@ unsafe fn lookup_avx(t: u32x8, idx: u32x8) -> u32x8 {
 #[cfg(target_arch = "aarch64")]
 #[target_feature(enable = "neon")]
 unsafe fn lookup_neon(t: u32x8, idx: u32x8) -> u32x8 {
-    #[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
+    #[cfg(target_arch = "aarch64")]
     use core::arch::aarch64::{uint8x16_t, vqtbl1q_u8};
 
     const OFFSET: u32 = if cfg!(target_endian = "little") {
