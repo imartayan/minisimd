@@ -21,7 +21,7 @@ unsafe fn gather_avx(source: u64x4) -> u64x4 {
 pub fn gather(source: u64x4) -> u64x4 {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     if std::is_x86_feature_detected!("avx") {
-        return unsafe { gather_avx(a, b) };
+        return unsafe { gather_avx(source) };
     }
     unsafe { u64x4::new(source.to_array().map(|p| *(p as *const u64))) }
 }
