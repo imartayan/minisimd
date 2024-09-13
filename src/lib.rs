@@ -1,4 +1,4 @@
-#![feature(slice_as_chunks)]
+// #![feature(portable_simd)]
 
 pub mod minimizer;
 pub mod ringbuf;

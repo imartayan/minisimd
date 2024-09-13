@@ -5,7 +5,7 @@ use wide::u32x8;
 type S = u32x8;
 
 #[inline(always)]
-fn sliding_min_par_it(
+pub fn sliding_min_par_it(
     it: impl ExactSizeIterator<Item = S>,
     w: usize,
 ) -> impl ExactSizeIterator<Item = S> {
@@ -20,7 +20,7 @@ fn sliding_min_par_it(
     let val_mask = S::splat(0xffff_0000);
     let pos_mask = S::splat(0x0000_ffff);
     let max_pos = S::splat((1 << 16) - 1);
-    let mut pos = S::splat(0);
+    let mut pos = S::ZERO;
     let mut pos_offset = S::new(from_fn(|l| {
         (l * (it.size_hint().0.saturating_sub(w - 1))) as u32
     }));
@@ -40,7 +40,7 @@ fn sliding_min_par_it(
             }
 
             let elem = (val & val_mask) | pos;
-            pos += S::splat(1);
+            pos += S::ONE;
             ring_buf.push(elem);
             prefix_min = prefix_min.min(elem);
 
@@ -74,11 +74,9 @@ mod tests {
     fn test_sliding_min() {
         let w = 3;
         let hashes = [7, 5, 9, 8, 6, 3].map(|x| x << 16);
-        let hashes: [u32; 6 * LANES] = from_fn(|i| hashes[i / LANES]);
+        let chunks = hashes.map(|h| [h; LANES]);
         let expected = [1, 1, 4, 5]; // positions of the minimizers
         let expected: [u32; 4 * LANES] = from_fn(|i| expected[i / LANES] + 4 * (i % LANES) as u32);
-
-        let chunks = hashes.as_chunks::<8>().0;
         let it = chunks.iter().map(|&t| t.into());
 
         let res: Vec<u32> = sliding_min_par_it(it, w)
