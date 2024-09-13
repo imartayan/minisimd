@@ -1,5 +1,6 @@
 // #![feature(portable_simd)]
 
+pub mod intrinsics;
 pub mod minimizer;
 pub mod ringbuf;
 
