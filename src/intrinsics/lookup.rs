@@ -1,4 +1,3 @@
-use core::mem::transmute;
 use wide::u32x8;
 
 #[inline(always)]
@@ -8,9 +7,10 @@ use wide::u32x8;
 ))]
 unsafe fn lookup_avx(t: u32x8, idx: u32x8) -> u32x8 {
     #[cfg(target_arch = "x86")]
-    use std::arch::x86::_mm256_permutevar_ps;
+    use core::arch::x86::_mm256_permutevar_ps;
     #[cfg(target_arch = "x86_64")]
-    use std::arch::x86_64::_mm256_permutevar_ps;
+    use core::arch::x86_64::_mm256_permutevar_ps;
+    use core::mem::transmute;
 
     transmute(_mm256_permutevar_ps(transmute(t), transmute(idx)))
 }
@@ -20,6 +20,7 @@ unsafe fn lookup_avx(t: u32x8, idx: u32x8) -> u32x8 {
 unsafe fn lookup_neon(t: u32x8, idx: u32x8) -> u32x8 {
     #[cfg(target_arch = "aarch64")]
     use core::arch::aarch64::{uint8x16_t, vqtbl1q_u8};
+    use core::mem::transmute;
 
     const OFFSET: u32 = if cfg!(target_endian = "little") {
         0x03_02_01_00

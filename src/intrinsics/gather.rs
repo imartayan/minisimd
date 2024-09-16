@@ -13,11 +13,12 @@ use wide::u64x4;
 ))]
 unsafe fn gather_avx(ptr: *const u8, offsets: u64x4) -> u64x4 {
     #[cfg(target_arch = "x86")]
-    use std::arch::x86::_mm512_i64gather_epi64;
+    use core::arch::x86::_mm512_i64gather_epi64;
     #[cfg(target_arch = "x86_64")]
-    use std::arch::x86_64::_mm512_i64gather_epi64;
+    use core::arch::x86_64::_mm512_i64gather_epi64;
+    use core::mem::transmute;
 
-    _mm512_i64gather_epi64(offsets, ptr, 1)
+    _mm512_i64gather_epi64(transmute(offsets), ptr, 1)
 }
 
 #[inline(always)]

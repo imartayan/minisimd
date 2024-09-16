@@ -1,4 +1,3 @@
-use core::mem::transmute;
 use wide::u32x8;
 
 // use std::simd::Simd;
@@ -14,9 +13,10 @@ use wide::u32x8;
 ))]
 unsafe fn deinterleave_avx(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
     #[cfg(target_arch = "x86")]
-    use std::arch::x86::{__m256, __m256d, _mm256_permute4x64_pd, _mm256_shuffle_ps};
+    use core::arch::x86::{__m256, __m256d, _mm256_permute4x64_pd, _mm256_shuffle_ps};
     #[cfg(target_arch = "x86_64")]
-    use std::arch::x86_64::{__m256, __m256d, _mm256_permute4x64_pd, _mm256_shuffle_ps};
+    use core::arch::x86_64::{__m256, __m256d, _mm256_permute4x64_pd, _mm256_shuffle_ps};
+    use core::mem::transmute;
 
     const SHUFFLE_EVEN: i32 = if cfg!(target_endian = "little") {
         0b10_00_10_00
@@ -48,6 +48,7 @@ unsafe fn deinterleave_avx(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
 unsafe fn deinterleave_neon(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
     #[cfg(target_arch = "aarch64")]
     use core::arch::aarch64::{uint32x4_t, vuzp1q_u32, vuzp2q_u32};
+    use core::mem::transmute;
 
     let (a1, a2): (uint32x4_t, uint32x4_t) = transmute(a);
     let (b1, b2): (uint32x4_t, uint32x4_t) = transmute(b);
