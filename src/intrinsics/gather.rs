@@ -34,7 +34,7 @@ pub fn gather(ptr: *const u8, offsets: u64x4) -> u64x4 {
         target_feature = "avx512f"
     ))]
     unsafe {
-        gather_avx(source)
+        gather_avx(ptr, offsets)
     }
     #[cfg(not(all(
         any(target_arch = "x86", target_arch = "x86_64"),
