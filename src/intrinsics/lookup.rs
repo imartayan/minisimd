@@ -37,7 +37,7 @@ unsafe fn lookup_neon(t: u32x8, idx: u32x8) -> u32x8 {
 
 #[inline(always)]
 #[deprecated(
-    note = "This function does not use SIMD, make sure you are compiling using `target=native`."
+    note = "This function does not use SIMD, make sure you are compiling using `-C target-cpu=native`."
 )]
 unsafe fn lookup_fallback(t: u32x8, idx: u32x8) -> u32x8 {
     let t = t.as_array_ref();

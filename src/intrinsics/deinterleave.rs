@@ -62,7 +62,7 @@ unsafe fn deinterleave_neon(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
 
 #[inline(always)]
 #[deprecated(
-    note = "This function does not use SIMD, make sure you are compiling using `target=native`."
+    note = "This function does not use SIMD, make sure you are compiling using `-C target-cpu=native`."
 )]
 unsafe fn deinterleave_fallback(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
     let a = a.as_array_ref();
