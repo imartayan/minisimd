@@ -33,6 +33,15 @@ unsafe fn lookup_neon(t: u32x8, idx: u32x8) -> u32x8 {
 }
 
 #[inline(always)]
+#[deprecated(
+    note = "This function does not use SIMD, make sure you are compiling using `target=native`."
+)]
+unsafe fn lookup_fallback(t: u32x8, idx: u32x8) -> u32x8 {
+    let t = t.as_array_ref();
+    u32x8::new(idx.to_array().map(|i| *t.get_unchecked(i as usize)))
+}
+
+#[inline(always)]
 pub fn lookup(t: u32x8, idx: u32x8) -> u32x8 {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     if std::is_x86_feature_detected!("avx") {
@@ -42,10 +51,7 @@ pub fn lookup(t: u32x8, idx: u32x8) -> u32x8 {
     if std::arch::is_aarch64_feature_detected!("neon") {
         return unsafe { lookup_neon(t, idx) };
     }
-    unsafe {
-        let t = t.as_array_ref();
-        u32x8::new(idx.to_array().map(|i| *t.get_unchecked(i as usize)))
-    }
+    unsafe { lookup_fallback(t, idx) }
 }
 
 #[cfg(test)]

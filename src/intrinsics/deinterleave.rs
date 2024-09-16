@@ -58,6 +58,37 @@ unsafe fn deinterleave_neon(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
 }
 
 #[inline(always)]
+#[deprecated(
+    note = "This function does not use SIMD, make sure you are compiling using `target=native`."
+)]
+unsafe fn deinterleave_fallback(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
+    let a = a.as_array_ref();
+    let b = b.as_array_ref();
+    (
+        u32x8::new([
+            *a.get_unchecked(0),
+            *a.get_unchecked(2),
+            *a.get_unchecked(4),
+            *a.get_unchecked(6),
+            *b.get_unchecked(0),
+            *b.get_unchecked(2),
+            *b.get_unchecked(4),
+            *b.get_unchecked(6),
+        ]),
+        u32x8::new([
+            *a.get_unchecked(1),
+            *a.get_unchecked(3),
+            *a.get_unchecked(5),
+            *a.get_unchecked(7),
+            *b.get_unchecked(1),
+            *b.get_unchecked(3),
+            *b.get_unchecked(5),
+            *b.get_unchecked(7),
+        ]),
+    )
+}
+
+#[inline(always)]
 pub fn deinterleave(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     if std::is_x86_feature_detected!("avx") {
@@ -67,32 +98,7 @@ pub fn deinterleave(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
     if std::arch::is_aarch64_feature_detected!("neon") {
         return unsafe { deinterleave_neon(a, b) };
     }
-    unsafe {
-        let a = a.as_array_ref();
-        let b = b.as_array_ref();
-        (
-            u32x8::new([
-                *a.get_unchecked(0),
-                *a.get_unchecked(2),
-                *a.get_unchecked(4),
-                *a.get_unchecked(6),
-                *b.get_unchecked(0),
-                *b.get_unchecked(2),
-                *b.get_unchecked(4),
-                *b.get_unchecked(6),
-            ]),
-            u32x8::new([
-                *a.get_unchecked(1),
-                *a.get_unchecked(3),
-                *a.get_unchecked(5),
-                *a.get_unchecked(7),
-                *b.get_unchecked(1),
-                *b.get_unchecked(3),
-                *b.get_unchecked(5),
-                *b.get_unchecked(7),
-            ]),
-        )
-    }
+    unsafe { deinterleave_fallback(a, b) }
 }
 
 #[cfg(test)]
