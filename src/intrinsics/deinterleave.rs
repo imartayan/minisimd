@@ -7,8 +7,11 @@ use wide::u32x8;
 //     a.deinterleave(b)
 // }
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-#[target_feature(enable = "avx2")]
+#[inline(always)]
+#[cfg(all(
+    any(target_arch = "x86", target_arch = "x86_64"),
+    target_feature = "avx2"
+))]
 unsafe fn deinterleave_avx(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
     #[cfg(target_arch = "x86")]
     use std::arch::x86::{__m256, __m256d, _mm256_permute4x64_pd, _mm256_shuffle_ps};
@@ -40,8 +43,8 @@ unsafe fn deinterleave_avx(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
     (transmute(ab_even), transmute(ab_odd))
 }
 
-#[cfg(target_arch = "aarch64")]
-#[target_feature(enable = "neon")]
+#[inline(always)]
+#[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
 unsafe fn deinterleave_neon(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
     #[cfg(target_arch = "aarch64")]
     use core::arch::aarch64::{uint32x4_t, vuzp1q_u32, vuzp2q_u32};
@@ -90,15 +93,27 @@ unsafe fn deinterleave_fallback(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
 
 #[inline(always)]
 pub fn deinterleave(a: u32x8, b: u32x8) -> (u32x8, u32x8) {
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    if std::is_x86_feature_detected!("avx") {
-        return unsafe { deinterleave_avx(a, b) };
+    #[cfg(all(
+        any(target_arch = "x86", target_arch = "x86_64"),
+        target_feature = "avx2"
+    ))]
+    unsafe {
+        deinterleave_avx(a, b)
     }
-    #[cfg(target_arch = "aarch64")]
-    if std::arch::is_aarch64_feature_detected!("neon") {
-        return unsafe { deinterleave_neon(a, b) };
+    #[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
+    unsafe {
+        deinterleave_neon(a, b)
     }
-    unsafe { deinterleave_fallback(a, b) }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "avx2"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    unsafe {
+        deinterleave_fallback(a, b)
+    }
 }
 
 #[cfg(test)]

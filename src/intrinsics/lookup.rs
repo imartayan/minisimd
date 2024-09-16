@@ -1,8 +1,11 @@
 use core::mem::transmute;
 use wide::u32x8;
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-#[target_feature(enable = "avx")]
+#[inline(always)]
+#[cfg(all(
+    any(target_arch = "x86", target_arch = "x86_64"),
+    target_feature = "avx"
+))]
 unsafe fn lookup_avx(t: u32x8, idx: u32x8) -> u32x8 {
     #[cfg(target_arch = "x86")]
     use std::arch::x86::_mm256_permutevar_ps;
@@ -12,8 +15,8 @@ unsafe fn lookup_avx(t: u32x8, idx: u32x8) -> u32x8 {
     transmute(_mm256_permutevar_ps(transmute(t), transmute(idx)))
 }
 
-#[cfg(target_arch = "aarch64")]
-#[target_feature(enable = "neon")]
+#[inline(always)]
+#[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
 unsafe fn lookup_neon(t: u32x8, idx: u32x8) -> u32x8 {
     #[cfg(target_arch = "aarch64")]
     use core::arch::aarch64::{uint8x16_t, vqtbl1q_u8};
@@ -43,15 +46,27 @@ unsafe fn lookup_fallback(t: u32x8, idx: u32x8) -> u32x8 {
 
 #[inline(always)]
 pub fn lookup(t: u32x8, idx: u32x8) -> u32x8 {
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    if std::is_x86_feature_detected!("avx") {
-        return unsafe { lookup_avx(t, idx) };
+    #[cfg(all(
+        any(target_arch = "x86", target_arch = "x86_64"),
+        target_feature = "avx"
+    ))]
+    unsafe {
+        lookup_avx(t, idx)
     }
-    #[cfg(target_arch = "aarch64")]
-    if std::arch::is_aarch64_feature_detected!("neon") {
-        return unsafe { lookup_neon(t, idx) };
+    #[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
+    unsafe {
+        lookup_neon(t, idx)
     }
-    unsafe { lookup_fallback(t, idx) }
+    #[cfg(not(any(
+        all(
+            any(target_arch = "x86", target_arch = "x86_64"),
+            target_feature = "avx"
+        ),
+        all(target_arch = "aarch64", target_feature = "neon")
+    )))]
+    unsafe {
+        lookup_fallback(t, idx)
+    }
 }
 
 #[cfg(test)]

@@ -6,8 +6,11 @@ use wide::u64x4;
 //     unsafe { Simd::<u64, 2>::gather_ptr(source) }
 // }
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-#[target_feature(enable = "avx512f")]
+#[inline(always)]
+#[cfg(all(
+    any(target_arch = "x86", target_arch = "x86_64"),
+    target_feature = "avx512f"
+))]
 unsafe fn gather_avx(ptr: *const u8, offsets: u64x4) -> u64x4 {
     #[cfg(target_arch = "x86")]
     use std::arch::x86::_mm512_i64gather_epi64;
@@ -26,9 +29,18 @@ unsafe fn gather_fallback(ptr: *const u8, offsets: u64x4) -> u64x4 {
 #[inline(always)]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub fn gather(ptr: *const u8, offsets: u64x4) -> u64x4 {
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    if std::is_x86_feature_detected!("avx512f") {
-        return unsafe { gather_avx(source) };
+    #[cfg(all(
+        any(target_arch = "x86", target_arch = "x86_64"),
+        target_feature = "avx512f"
+    ))]
+    unsafe {
+        gather_avx(source)
     }
-    unsafe { gather_fallback(ptr, offsets) }
+    #[cfg(not(all(
+        any(target_arch = "x86", target_arch = "x86_64"),
+        target_feature = "avx512f"
+    )))]
+    unsafe {
+        gather_fallback(ptr, offsets)
+    }
 }
